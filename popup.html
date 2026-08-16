@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Flex Seat Watcher</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="mark">FS</div>
+        <div>
+          <h1>Flex Seat Watcher</h1>
+          <p id="headline">Ready to watch</p>
+        </div>
+      </header>
+
+      <section class="panel">
+        <label for="targets">Course names, one per line</label>
+        <textarea id="targets" rows="3" spellcheck="false">Multiagent Systems
+Edge Computing</textarea>
+
+        <label for="interval">Refresh the Flex tab every</label>
+        <select id="interval">
+          <option value="1">1 minute</option>
+          <option value="2">2 minutes</option>
+          <option value="5">5 minutes</option>
+        </select>
+
+        <label class="check-row" for="auto-login">
+          <input id="auto-login" type="checkbox">
+          <span>
+            <strong>Automatic sign-in</strong>
+            <small>Use credentials saved and autofilled by your browser</small>
+          </span>
+        </label>
+
+        <label class="check-row danger-row" for="auto-register">
+          <input id="auto-register" type="checkbox">
+          <span>
+            <strong>Automatically register</strong>
+            <small>Edge is preferred if both target courses are available</small>
+          </span>
+        </label>
+
+        <label class="check-row" for="email-enabled">
+          <input id="email-enabled" type="checkbox">
+          <span>
+            <strong>Email alerts</strong>
+            <small>Send to <span id="email-recipient">configured email</span></small>
+          </span>
+        </label>
+
+        <label for="email-webhook">Google Apps Script web-app URL</label>
+        <input id="email-webhook" type="url" spellcheck="false" placeholder="https://script.google.com/macros/s/.../exec">
+        <button id="test-email" class="secondary test-email">Save and send test email</button>
+
+        <div class="actions">
+          <button id="start" class="primary">Start watching this tab</button>
+          <button id="stop" class="secondary" hidden>Stop</button>
+          <button id="scan" class="secondary" hidden>Check now</button>
+        </div>
+        <button id="calibrate" class="secondary calibrate">Teach Available Courses position</button>
+      </section>
+
+      <section id="status" class="status" aria-live="polite"></section>
+      <p class="footnote">The native fallback briefly uses Chrome's debugging interface to find and click the tab. If that cannot locate it, teach the screen position once. Automatic registration remains separately controlled.</p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

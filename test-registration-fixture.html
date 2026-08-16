@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Flex registration fixture</title>
+    <style>
+      body { font-family: sans-serif; padding: 20px; }
+      nav li, input, select, button { margin: 6px; }
+      nav li { display: inline-block; padding: 8px; cursor: pointer; }
+      .active { border: 2px solid #0781d4; }
+      [hidden] { display: none; }
+      table { margin-top: 14px; border-collapse: collapse; }
+      td { padding: 8px; border: 1px solid #acd5f3; }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <ul>
+        <li id="student-tab" data-tab class="active"><span>Student Info</span></li>
+        <li id="registered-tab" data-tab><span>Already Registered Courses</span><b>4</b></li>
+        <li><input id="available-tab" data-tab type="button" value="Available Courses"></li>
+      </ul>
+    </nav>
+    <section id="student-view">Student information</section>
+    <section id="available-view" hidden>
+      <button id="confirm">Confirm Registration</button>
+      <table>
+        <tr><td>AIX03</td><td>AI402-Multiagent Systems and Game Theory</td><td>Not Registered</td><td>No Seats Available</td><td>Sections Full</td></tr>
+        <tr id="edge-row">
+          <td>AIX04</td><td>AI409-Edge Computing and Intelligent Systems</td><td>Not Registered</td>
+          <td><select><option value="BAI-7A">BAI-7A</option></select></td>
+          <td><label><input id="edge-register" type="checkbox">Register</label></td>
+        </tr>
+      </table>
+    </section>
+    <section id="registered-view" hidden><table id="registered-table"></table></section>
+    <script src="scanner.js"></script>
+    <script>
+      window.fixtureEvents = [];
+      window.fixtureConfirmed = false;
+      window.fixtureWatcher = {
+        enabled: true,
+        targets: ["Multiagent Systems", "Edge Computing"],
+        autoRegisterTargets: ["Multiagent Systems", "Edge Computing"],
+        autoLogin: false,
+        autoRegister: true,
+        runId: `fixture-run-${Date.now()}`,
+        registration: { phase: "idle", target: null, attemptedAt: null },
+        openTargets: []
+      };
+
+      function logEvent(value) {
+        fixtureEvents.push(value);
+        document.body.dataset.events = JSON.stringify(fixtureEvents);
+      }
+
+      function show(view, tab) {
+        document.querySelectorAll("section").forEach((element) => { element.hidden = true; });
+        document.querySelectorAll("[data-tab]").forEach((element) => element.classList.remove("active"));
+        document.querySelector(`#${view}`).hidden = false;
+        document.querySelector(`#${tab}`).classList.add("active");
+      }
+
+      document.querySelector("#student-tab").onclick = () => show("student-view", "student-tab");
+      document.querySelector("#available-tab").onclick = () => {
+        logEvent("available-tab-clicked");
+        show("available-view", "available-tab");
+      };
+      document.querySelector("#registered-tab").onclick = () => {
+        logEvent("registered-tab-clicked");
+        if (fixtureConfirmed) {
+          document.querySelector("#registered-table").innerHTML = "<tr><td>AIX04</td><td>AI409-Edge Computing and Intelligent Systems</td><td>Registered</td><td>BAI-7A</td><td>Drop</td></tr>";
+        }
+        show("registered-view", "registered-tab");
+      };
+      document.querySelector("#confirm").onclick = () => {
+        fixtureConfirmed = document.querySelector("#edge-register").checked;
+        document.body.dataset.confirmed = String(fixtureConfirmed);
+        logEvent(fixtureConfirmed ? "confirm-clicked" : "confirm-without-selection");
+        if (new URLSearchParams(location.search).has("error")) {
+          const alert = document.createElement("div");
+          alert.className = "alert-danger";
+          alert.textContent = "Registration failed because of a portal error.";
+          document.querySelector("#available-view").append(alert);
+        }
+      };
+
+      window.chrome.storage = {
+          local: {
+            get: async () => ({ watcher: fixtureWatcher })
+          }
+        };
+      window.chrome.runtime = {
+          onMessage: {
+            addListener: (listener) => { window.fixtureMessageListener = listener; }
+          },
+          sendMessage: async (message) => {
+            logEvent(message.type + (message.target ? `:${message.target}` : ""));
+            if (message.type === "PAGE_SCAN") {
+              fixtureWatcher.results = message.results;
+              fixtureWatcher.openTargets = message.results.filter((result) => result.available).map((result) => result.target);
+              document.body.dataset.results = JSON.stringify(message.results);
+            }
+            if (message.type === "REGISTRATION_STARTED") {
+              fixtureWatcher.registration = {
+                phase: "attempting",
+                target: message.target,
+                attemptedAt: message.checkedAt
+              };
+            }
+            if (message.type === "REGISTRATION_SUCCESS") {
+              fixtureWatcher.registration.phase = "success";
+              fixtureWatcher.enabled = false;
+              document.body.dataset.registration = JSON.stringify(fixtureWatcher.registration);
+            }
+            if (message.type === "REGISTRATION_ERROR") {
+              fixtureWatcher.registration.phase = "error";
+              fixtureWatcher.registration.detail = message.detail;
+              document.body.dataset.registration = JSON.stringify(fixtureWatcher.registration);
+            }
+            return { ok: true, result: fixtureWatcher };
+          }
+      };
+    </script>
+    <script src="content.js"></script>
+  </body>
+</html>
